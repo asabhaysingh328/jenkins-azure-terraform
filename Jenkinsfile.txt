@@ -1,0 +1,52 @@
+pipeline {
+    agent any
+
+    environment {
+        ARM_CLIENT_ID       = credentials('azure-app-id')        // Service Principal App ID
+        ARM_CLIENT_SECRET   = credentials('azure-password')      // Service Principal Secret
+        ARM_TENANT_ID       = credentials('azure-tenant-id')     // Tenant ID
+        ARM_SUBSCRIPTION_ID = credentials('azure-subscription-id') // Subscription ID
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/<your-username>/jenkins-azure-terraform.git'
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                dir('terraform') {
+                    sh 'terraform init'
+                }
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                dir('terraform') {
+                    sh 'terraform plan -out=tfplan'
+                }
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                dir('terraform') {
+                    sh 'terraform apply -auto-approve tfplan'
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Terraform deployment completed successfully!"
+        }
+        failure {
+            echo "❌ Terraform deployment failed. Check logs."
+        }
+    }
+}
